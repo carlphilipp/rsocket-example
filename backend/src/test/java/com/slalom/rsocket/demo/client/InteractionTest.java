@@ -3,6 +3,7 @@ package com.slalom.rsocket.demo.client;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.rsocket.RSocketRequester;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -66,5 +67,34 @@ class InteractionTest {
 
         // then
         assertThat(result).contains("hello 1", "hello 2");
+    }
+
+    @DisplayName("Request channel")
+    @Test
+    void shouldRequestChannel() {
+        // given
+        RSocketRequester rSocketRequester = RSocketRequester.builder()
+            .connectTcp("localhost", 7000)
+            .block();
+        Flux<String> payloads = Flux.range(0, 5)
+            .map(i -> "Welcome to Rsocket #" + i);
+
+        // when
+        final List<String> result = rSocketRequester
+            .route("requestChannel")
+            .data(payloads)
+            .retrieveFlux(String.class)
+            .doOnNext(msg -> System.out.println("received messages::" + msg))
+            .collectList()
+            .block();
+
+        // then
+        assertThat(result).contains(
+            "Welcome to Rsocket #0 updated",
+            "Welcome to Rsocket #1 updated",
+            "Welcome to Rsocket #2 updated",
+            "Welcome to Rsocket #3 updated",
+            "Welcome to Rsocket #4 updated"
+        );
     }
 }
