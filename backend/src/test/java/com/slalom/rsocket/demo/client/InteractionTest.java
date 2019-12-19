@@ -12,14 +12,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Test 4 different type of rsocket interaction")
 class InteractionTest {
 
+    private final RSocketRequester rSocketRequester = RSocketRequester.builder()
+        .connectTcp("localhost", 7000)
+        .block();
+
     @DisplayName("Request response")
     @Test
     void shouldObtainRequestResponse() {
-        // given
-        RSocketRequester rSocketRequester = RSocketRequester.builder()
-            .connectTcp("localhost", 7000)
-            .block();
-
         // when
         final String result = rSocketRequester
             .route("requestResponse")
@@ -33,11 +32,6 @@ class InteractionTest {
     @DisplayName("Fire and Forget")
     @Test
     void shouldFireAndForget() {
-        // given
-        RSocketRequester rSocketRequester = RSocketRequester.builder()
-            .connectTcp("localhost", 7000)
-            .block();
-
         // when
         final Void result = rSocketRequester
             .route("fireAndForget")
@@ -52,11 +46,6 @@ class InteractionTest {
     @DisplayName("Request stream")
     @Test
     void shouldRequestStream() {
-        // given
-        RSocketRequester rSocketRequester = RSocketRequester.builder()
-            .connectTcp("localhost", 7000)
-            .block();
-
         // when
         final List<String> result = rSocketRequester
             .route("requestStream")
@@ -73,9 +62,6 @@ class InteractionTest {
     @Test
     void shouldRequestChannel() {
         // given
-        RSocketRequester rSocketRequester = RSocketRequester.builder()
-            .connectTcp("localhost", 7000)
-            .block();
         Flux<String> payloads = Flux.range(0, 5)
             .map(i -> "Welcome to Rsocket #" + i);
 
