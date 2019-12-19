@@ -6,10 +6,7 @@ spring:
 logging:
   level:
     root: INFO
-    sun.rmi.loader: INFO
-    sun.rmi.transport.tcp: INFO
-    javax.management.remote.rmi: INFO
     com.slalom.rsocket.demo: DEBUG
-    org.springframework.beans: DEBUG
+    org.springframework.beans: INFO
     org.springframework.data.redis: DEBUG
     redis.embedded;: DEBUG

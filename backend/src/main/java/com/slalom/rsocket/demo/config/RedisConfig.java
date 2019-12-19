@@ -1,11 +1,9 @@
 package com.slalom.rsocket.demo.config;
 
 import com.slalom.rsocket.demo.domain.Tweet;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -18,19 +16,12 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 @Configuration
-public class DbConfig {
-
-    @Autowired
-    private RedisConnectionFactory factory;
+public class RedisConfig {
 
     private RedisServer redisServer;
 
-    public DbConfig() {
-        this.redisServer = new RedisServer();
-    }
-
     @Bean
-    public LettuceConnectionFactory redisConnectionFactory() {
+    LettuceConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory("localhost", 6379);
     }
 
@@ -46,12 +37,12 @@ public class DbConfig {
 
     @PostConstruct
     public void postConstruct() {
+        redisServer = new RedisServer();
         redisServer.start();
     }
 
     @PreDestroy
     public void flushDb() {
-        factory.getConnection().flushDb();
         redisServer.stop();
     }
 }
