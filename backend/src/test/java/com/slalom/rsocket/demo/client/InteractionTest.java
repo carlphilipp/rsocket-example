@@ -2,19 +2,27 @@ package com.slalom.rsocket.demo.client;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import reactor.core.publisher.Flux;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Test 4 different type of rsocket interaction")
+@SpringBootTest
 class InteractionTest {
 
-    private final RSocketRequester rSocketRequester = RSocketRequester.builder()
-        .connectTcp("localhost", 7000)
-        .block();
+    private RSocketRequester rSocketRequester;
+
+    @PostConstruct
+    void postConstruct() {
+        rSocketRequester = RSocketRequester.builder()
+            .connectTcp("localhost", 7000)
+            .block();
+    }
 
     @DisplayName("Request response")
     @Test

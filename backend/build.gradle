@@ -17,7 +17,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
     implementation 'io.lettuce:lettuce-core'
     implementation 'it.ozimov:embedded-redis:0.7.2'
+
     compileOnly 'org.projectlombok:lombok'
+
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.assertj:assertj-core'
@@ -29,4 +31,15 @@ dependencies {
 
 test {
     useJUnitPlatform()
+
+    testLogging {
+        events 'PASSED', 'FAILED', 'SKIPPED'
+        exceptionFormat "full"
+    }
+
+    testLogging.showStandardStreams = true
+
+    reports {
+        html.enabled = true
+    }
 }
