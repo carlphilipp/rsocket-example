@@ -35,10 +35,11 @@ public class RedisConfig {
         return new ReactiveRedisTemplate<>(factory, context);
     }
 
-    @PostConstruct
-    public void postConstruct() {
+    @Bean
+    public RedisServer redisServer() {
         redisServer = new RedisServer();
         redisServer.start();
+        return redisServer;
     }
 
     @PreDestroy

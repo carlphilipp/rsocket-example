@@ -2,18 +2,25 @@ package com.slalom.rsocket.demo.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slalom.rsocket.demo.domain.Tweet;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.json.Jackson2JsonDecoder;
 import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import redis.embedded.RedisServer;
 
 import javax.annotation.PostConstruct;
+import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,6 +33,8 @@ public class TweetTest {
     private static final MediaType[] SUPPORTED_TYPES = {MediaType.APPLICATION_JSON, new MediaType("application", "*+json")};
 
     private RSocketRequester rSocketRequester;
+    @Autowired
+    private RedisServer redisServer;
 
     @PostConstruct
     void postConstruct() {
@@ -37,6 +46,12 @@ public class TweetTest {
             .dataMimeType(MediaType.APPLICATION_JSON)
             .connectTcp("localhost", 7000)
             .block();
+    }
+
+    @BeforeEach
+    void beforeEach() {
+        redisServer.stop();
+        redisServer.start();
     }
 
     @DisplayName("Add a tweet")
@@ -84,14 +99,22 @@ public class TweetTest {
 
     @DisplayName("Get a stream of tweet")
     @Test
-    void shouldGetAStreamOfTweet() throws InterruptedException {
+    void shouldGetAStreamOfTweet() {
         // given
         Tweet tweet = Tweet.builder().author("carl").content("Hello rsocket get tweet").build();
-        final String id = rSocketRequester
+        rSocketRequester
             .route("addTweet")
             .data(tweet)
             .retrieveMono(String.class)
-            .doOnNext(s -> System.out.println("ID foound: " + s))
+            .doOnNext(s -> System.out.println("ID found: " + s))
+            .block();
+
+        Tweet tweet2 = Tweet.builder().author("carl").content("Hello rsocket get tweet2").build();
+        rSocketRequester
+            .route("addTweet")
+            .data(tweet2)
+            .retrieveMono(String.class)
+            .doOnNext(s -> System.out.println("ID found: " + s))
             .block();
 
         // when
@@ -100,21 +123,47 @@ public class TweetTest {
             .retrieveFlux(Tweet.class)
             .doOnNext(System.out::println)
             .subscribe(tweet1 -> System.out.println("success"));
-        //.blockLast(Duration.ofSeconds(5));
+    }
 
-        Tweet tweet2 = Tweet.builder().author("carl").content("Hello rsocket get tweet2").build();
-        rSocketRequester
-            .route("addTweet")
-            .data(tweet2)
-            .retrieveMono(String.class)
-            .doOnNext(s -> System.out.println("ID foound: " + s))
-            .block();
+    @DisplayName("Get a channel of tweet")
+    @Test
+    void shouldGetAChannelOfTweet() {
+        // given
+        Flux<Tweet> tweets = Flux.range(0, 5)
+            .map(i -> Tweet.builder().author("carl").content("Hello rsocket get tweet " + i).build())
+            .delayElements(Duration.ofMillis(100))
+            .doOnNext(System.out::println);
 
-        Thread.sleep(10000);
+        // when
+        Flux<List<Tweet>> mono = rSocketRequester
+            .route("channelOfTweet")
+            .data(tweets)
+            .retrieveFlux(new ParameterizedTypeReference<List<Tweet>>() {
+            })
+            .doOnNext(System.out::println);
 
         // then
-        /*assertThat(actual.getId()).isEqualTo(id);
-        assertThat(actual.getAuthor()).isEqualTo("carl");
-        assertThat(actual.getContent()).isEqualTo("Hello rsocket get tweet");*/
+        StepVerifier.create(mono)
+            .expectNextMatches(t -> {
+                assertThat(t).hasSize(1);
+                return true;
+            })
+            .expectNextMatches(t -> {
+                assertThat(t).hasSize(2);
+                return true;
+            })
+            .expectNextMatches(t -> {
+                assertThat(t).hasSize(3);
+                return true;
+            })
+            .expectNextMatches(t -> {
+                assertThat(t).hasSize(4);
+                return true;
+            })
+            .expectNextMatches(t -> {
+                assertThat(t).hasSize(5);
+                return true;
+            })
+            .verifyComplete();
     }
 }

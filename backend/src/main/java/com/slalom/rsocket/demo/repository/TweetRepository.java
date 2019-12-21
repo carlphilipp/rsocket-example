@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @AllArgsConstructor
 @Repository
 public class TweetRepository {
@@ -25,5 +27,12 @@ public class TweetRepository {
         return operations
             .keys("*")
             .flatMap(operations.opsForValue()::get);
+    }
+
+    public Mono<List<Tweet>> allTweetsAsList() {
+        return operations
+            .keys("*")
+            .flatMap(operations.opsForValue()::get)
+            .collectList();
     }
 }

@@ -3,11 +3,13 @@ package com.slalom.rsocket.demo.routes;
 import com.slalom.rsocket.demo.domain.Tweet;
 import com.slalom.rsocket.demo.repository.TweetRepository;
 import lombok.RequiredArgsConstructor;
+import org.reactivestreams.Publisher;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -31,5 +33,16 @@ public class TweetRoutes {
     @MessageMapping("streamOfTweet")
     public Flux<Tweet> requestStream() {
         return tweetRepository.allTweets();
+    }
+
+    @MessageMapping("channelOfTweet")
+    public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> tweetPublisher) {
+        return Flux.from(tweetPublisher)
+            .doOnNext(tweet -> {
+                final String id = UUID.randomUUID().toString();
+                tweet.setId(id);
+            })
+            .flatMap(tweetRepository::add)
+            .flatMap(bool -> tweetRepository.allTweetsAsList());
     }
 }
