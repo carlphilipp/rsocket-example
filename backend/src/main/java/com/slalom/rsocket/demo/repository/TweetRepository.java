@@ -4,6 +4,7 @@ import com.slalom.rsocket.demo.domain.Tweet;
 import lombok.AllArgsConstructor;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @AllArgsConstructor
@@ -18,5 +19,11 @@ public class TweetRepository {
 
     public Mono<Tweet> get(final String id) {
         return operations.opsForValue().get(id);
+    }
+
+    public Flux<Tweet> allTweets() {
+        return operations
+            .keys("*")
+            .flatMap(operations.opsForValue()::get);
     }
 }

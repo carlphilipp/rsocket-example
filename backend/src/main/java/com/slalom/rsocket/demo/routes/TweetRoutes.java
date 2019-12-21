@@ -5,6 +5,7 @@ import com.slalom.rsocket.demo.repository.TweetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -25,5 +26,10 @@ public class TweetRoutes {
     @MessageMapping("getTweet")
     public Mono<Tweet> getTweet(final String id) {
         return tweetRepository.get(id);
+    }
+
+    @MessageMapping("streamOfTweet")
+    public Flux<Tweet> requestStream() {
+        return tweetRepository.allTweets();
     }
 }
