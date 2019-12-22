@@ -124,7 +124,7 @@ public class TweetTest {
         Flux<List<Tweet>> flux = rSocketRequester
             .route("channelOfTweet")
             .data(tweets)
-            .retrieveFlux(new ParameterizedTypeReference<List<Tweet>>() {
+            .retrieveFlux(new ParameterizedTypeReference<>() {
             });
 
         new Thread(() -> {
