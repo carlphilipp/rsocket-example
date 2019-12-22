@@ -2,6 +2,7 @@ package com.slalom.rsocket.demo.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slalom.rsocket.demo.domain.Tweet;
+import com.slalom.rsocket.demo.repository.TweetInMemoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,13 +17,14 @@ import org.springframework.messaging.rsocket.RSocketStrategies;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import redis.embedded.RedisServer;
 
 import javax.annotation.PostConstruct;
+import java.time.Duration;
 import java.util.List;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 @DisplayName("Test tweets")
 @SpringBootTest
@@ -30,14 +32,13 @@ public class TweetTest {
 
     private static final Logger LOG = java.util.logging.Logger.getLogger(TweetTest.class.getName());
 
-
     private static final String ID_REGEX = "[\\w\\d]{8}-[\\w\\d]{4}-[\\w\\d]{4}-[\\w\\d]{4}-[\\w\\d]{12}";
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final MediaType[] SUPPORTED_TYPES = {MediaType.APPLICATION_JSON, new MediaType("application", "*+json")};
 
     private RSocketRequester rSocketRequester;
     @Autowired
-    private RedisServer redisServer;
+    private TweetInMemoryRepository inMemoryRepository;
 
     @PostConstruct
     void postConstruct() {
@@ -53,8 +54,7 @@ public class TweetTest {
 
     @BeforeEach
     void beforeEach() {
-        redisServer.stop();
-        redisServer.start();
+        inMemoryRepository.reset();
     }
 
     @DisplayName("Add a tweet")
@@ -68,10 +68,9 @@ public class TweetTest {
 
         // then
         StepVerifier.create(mono)
-            .expectNextMatches(result -> {
+            .assertNext(result -> {
                 assertThat(result).isNotBlank();
                 assertThat(result).matches(ID_REGEX);
-                return true;
             })
             .verifyComplete();
     }
@@ -99,36 +98,21 @@ public class TweetTest {
     @Test
     void shouldGetAStreamOfTweet() {
         // given
-        Tweet tweet = buildTweet("Hello rsocket get tweet");
-        rSocketRequester
-            .route("addTweet")
-            .data(tweet)
-            .retrieveMono(String.class)
-            .doOnNext(s -> System.out.println("ID found: " + s))
-            .block();
-
-        Tweet tweet2 = buildTweet("Hello rsocket get tweet2");
-        rSocketRequester
-            .route("addTweet")
-            .data(tweet2)
-            .retrieveMono(String.class)
-            .doOnNext(s -> System.out.println("ID found: " + s))
-            .block();
+        saveTweet("Hello rsocket get tweet");
+        saveTweet("Hello rsocket get tweet2");
 
         // when
-        rSocketRequester
-            .route("streamOfTweet")
-            .retrieveFlux(Tweet.class)
-            .doOnNext(System.out::println)
-            .subscribe(tweet1 -> System.out.println("success"));
+        Flux<Tweet> flux = rSocketRequester.route("streamOfTweet").retrieveFlux(Tweet.class);
 
         // then
-
+        StepVerifier.create(flux)
+            .expectNextCount(2)
+            .verifyComplete();
     }
 
     @DisplayName("Get a channel of tweet")
     @Test
-    void shouldGetAChannelOfTweet() throws InterruptedException {
+    void shouldGetAChannelOfTweet() {
         // given
         saveTweet("My first tweet to save in the DB");
         saveTweet("My second tweet to save in the DB");
@@ -137,20 +121,27 @@ public class TweetTest {
             .doOnNext(tweet -> LOG.info("[Client] Sending: " + tweet));
 
         // when
-        Flux<List<Tweet>> mono = rSocketRequester
+        Flux<List<Tweet>> flux = rSocketRequester
             .route("channelOfTweet")
             .data(tweets)
             .retrieveFlux(new ParameterizedTypeReference<List<Tweet>>() {
             });
 
-        mono
-            .doOnNext(t -> LOG.info("[Client] Receiving: " + t))
-            .subscribe();
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000L);
+                saveTweet("Continue tweeting after channel is open");
+            } catch (InterruptedException e) {
+                fail("Threading issue", e);
+            }
+        }).start();
 
-
-        saveTweet("Continue tweeting after channel is open");
-
-        Thread.sleep(4000L);
+        // then
+        StepVerifier.create(flux)
+            .assertNext(res -> assertThat(res).hasSize(3))
+            .assertNext(res -> assertThat(res).hasSize(4))
+            .assertNext(res -> assertThat(res).hasSize(5))
+            .verifyTimeout(Duration.ofMillis(2000L));
     }
 
     private String saveTweet(String content) {

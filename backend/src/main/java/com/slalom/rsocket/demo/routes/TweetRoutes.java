@@ -25,11 +25,13 @@ public class TweetRoutes {
 
     @MessageMapping("addTweet")
     public Mono<String> addTweet(final Tweet tweet) {
-        final String id = UUID.randomUUID().toString();
-        tweet.setId(id);
-        return tweetRepository.add(tweet)
-            .doOnNext(res -> repoProcessor.onNext(tweetRepository.allTweetsNoRx()))
-            .then(Mono.just(id));
+        return Mono.just(UUID.randomUUID().toString())
+            .map(uuid -> {
+                tweet.setId(uuid);
+                return tweet;
+            })
+            .flatMap(tweetRepository::add)
+            .doOnNext(res -> repoProcessor.onNext(tweetRepository.allTweetsAsList()));
     }
 
     @MessageMapping("getTweet")
@@ -48,7 +50,7 @@ public class TweetRoutes {
         return Flux.merge(repoProcessor, clientPublisher)
             .flatMap(object -> {
                 return object instanceof Tweet
-                    ? addTweet((Tweet) object).flatMap(bool -> Mono.empty()) // Add tweet and stop processing addTweet will publish a new event
+                    ? addTweet((Tweet) object).flatMap(bool -> Mono.empty()) // Add tweet and stop processing. addTweet will publish a new event
                     : Mono.just((List<Tweet>) object);
             });
     }

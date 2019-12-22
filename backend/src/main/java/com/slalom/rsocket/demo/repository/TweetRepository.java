@@ -1,38 +1,20 @@
 package com.slalom.rsocket.demo.repository;
 
 import com.slalom.rsocket.demo.domain.Tweet;
-import lombok.AllArgsConstructor;
-import org.springframework.data.redis.core.ReactiveRedisOperations;
-import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-@AllArgsConstructor
-@Repository
-public class TweetRepository {
+public interface TweetRepository {
 
-    private final ReactiveRedisOperations<String, Tweet> operations;
+    Mono<String> add(final Tweet tweet);
 
-    public Mono<Boolean> add(final Tweet tweet) {
-        return operations.opsForValue().set(tweet.getId(), tweet);
-    }
+    Mono<Tweet> get(final String id);
 
-    public Mono<Tweet> get(final String id) {
-        return operations.opsForValue().get(id);
-    }
+    Flux<Tweet> allTweets();
 
-    public Flux<Tweet> allTweets() {
-        return operations
-            .keys("*")
-            .flatMap(operations.opsForValue()::get);
-    }
+    List<Tweet> allTweetsAsList();
 
-    public Mono<List<Tweet>> allTweetsAsList() {
-        return operations
-            .keys("*")
-            .flatMap(operations.opsForValue()::get)
-            .collectList();
-    }
+    void reset();
 }
