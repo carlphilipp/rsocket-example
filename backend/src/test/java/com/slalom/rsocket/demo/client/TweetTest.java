@@ -61,7 +61,7 @@ public class TweetTest {
     @Test
     void shouldAddATweet() {
         // given
-        Tweet tweet = Tweet.builder().author("carl").content("Hello rsocket").build();
+        Tweet tweet = buildTweet("Hello rsocket");
 
         // when
         Mono<String> mono = rSocketRequester.route("addTweet").data(tweet).retrieveMono(String.class);
@@ -80,31 +80,26 @@ public class TweetTest {
     @Test
     void shouldGetATweet() {
         // given
-        Tweet tweet = Tweet.builder().author("carl").content("Hello rsocket get tweet").build();
-        final String id = rSocketRequester
-            .route("addTweet")
-            .data(tweet)
-            .retrieveMono(String.class)
-            .block();
+        final String id = saveTweet("Hello rsocket get tweet");
 
         // when
-        final Tweet actual = rSocketRequester
-            .route("getTweet")
-            .data(id)
-            .retrieveMono(Tweet.class)
-            .block();
+        Mono<Tweet> mono = rSocketRequester.route("getTweet").data(id).retrieveMono(Tweet.class);
 
         // then
-        assertThat(actual.getId()).isEqualTo(id);
-        assertThat(actual.getAuthor()).isEqualTo("carl");
-        assertThat(actual.getContent()).isEqualTo("Hello rsocket get tweet");
+        StepVerifier.create(mono)
+            .assertNext(t -> {
+                assertThat(t.getId()).isEqualTo(id);
+                assertThat(t.getAuthor()).isEqualTo("carl");
+                assertThat(t.getContent()).isEqualTo("Hello rsocket get tweet");
+            })
+            .verifyComplete();
     }
 
     @DisplayName("Get a stream of tweet")
     @Test
     void shouldGetAStreamOfTweet() {
         // given
-        Tweet tweet = Tweet.builder().author("carl").content("Hello rsocket get tweet").build();
+        Tweet tweet = buildTweet("Hello rsocket get tweet");
         rSocketRequester
             .route("addTweet")
             .data(tweet)
@@ -112,7 +107,7 @@ public class TweetTest {
             .doOnNext(s -> System.out.println("ID found: " + s))
             .block();
 
-        Tweet tweet2 = Tweet.builder().author("carl").content("Hello rsocket get tweet2").build();
+        Tweet tweet2 = buildTweet("Hello rsocket get tweet2");
         rSocketRequester
             .route("addTweet")
             .data(tweet2)
@@ -126,6 +121,9 @@ public class TweetTest {
             .retrieveFlux(Tweet.class)
             .doOnNext(System.out::println)
             .subscribe(tweet1 -> System.out.println("success"));
+
+        // then
+
     }
 
     @DisplayName("Get a channel of tweet")
@@ -134,8 +132,8 @@ public class TweetTest {
         // given
         saveTweet("My first tweet to save in the DB");
         saveTweet("My second tweet to save in the DB");
-        Flux<Tweet> tweets = Flux.range(0, 3)
-            .map(i -> Tweet.builder().author("carl").content("Send flux of tweet #" + i).build())
+        Flux<Tweet> tweets = Flux.range(0, 2)
+            .map(i -> buildTweet("Send flux of tweet #" + i))
             .doOnNext(tweet -> LOG.info("[Client] Sending: " + tweet));
 
         // when
@@ -155,10 +153,14 @@ public class TweetTest {
         Thread.sleep(4000L);
     }
 
-    private void saveTweet(String content) {
-        rSocketRequester.route("addTweet")
-            .data(Tweet.builder().author("carl").content(content).build())
+    private String saveTweet(String content) {
+        return rSocketRequester.route("addTweet")
+            .data(buildTweet(content))
             .retrieveMono(String.class)
             .block();
+    }
+
+    private Tweet buildTweet(String content) {
+        return Tweet.builder().author("carl").content(content).build();
     }
 }
