@@ -48,10 +48,8 @@ public class TweetRoutes {
     @MessageMapping("channelOfTweet")
     public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> clientPublisher) {
         return Flux.merge(repoProcessor, clientPublisher)
-            .flatMap(object -> {
-                return object instanceof Tweet
-                    ? addTweet((Tweet) object).flatMap(bool -> Mono.empty()) // Add tweet and stop processing. addTweet will publish a new event
-                    : Mono.just((List<Tweet>) object);
-            });
+            .flatMap(object -> object instanceof Tweet
+                ? addTweet((Tweet) object).flatMap(bool -> Mono.empty()) // Add tweet and stop processing. addTweet will publish a new event
+                : Mono.just((List<Tweet>) object));
     }
 }
