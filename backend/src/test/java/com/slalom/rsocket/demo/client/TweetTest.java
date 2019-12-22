@@ -21,12 +21,16 @@ import redis.embedded.RedisServer;
 import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
+import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Test tweets")
 @SpringBootTest
 public class TweetTest {
+
+    private static final Logger LOG = java.util.logging.Logger.getLogger(TweetTest.class.getName());
+
 
     private static final String ID_REGEX = "[\\w\\d]{8}-[\\w\\d]{4}-[\\w\\d]{4}-[\\w\\d]{4}-[\\w\\d]{12}";
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -127,43 +131,37 @@ public class TweetTest {
 
     @DisplayName("Get a channel of tweet")
     @Test
-    void shouldGetAChannelOfTweet() {
+    void shouldGetAChannelOfTweet() throws InterruptedException {
         // given
-        Flux<Tweet> tweets = Flux.range(0, 5)
-            .map(i -> Tweet.builder().author("carl").content("Hello rsocket get tweet " + i).build())
-            .delayElements(Duration.ofMillis(100))
-            .doOnNext(System.out::println);
+        saveTweet("My first tweet to save in the DB");
+        saveTweet("My second tweet to save in the DB");
+
+        Flux<Tweet> tweets = Flux.range(0, 2)
+            .delayElements(Duration.ofMillis(500))
+            .map(i -> Tweet.builder().author("carl").content("Send flux of tweet #" + i).build());
+        //.doOnNext(tweet -> LOG.info("[Client] Sending: " + tweet));
 
         // when
         Flux<List<Tweet>> mono = rSocketRequester
             .route("channelOfTweet")
             .data(tweets)
             .retrieveFlux(new ParameterizedTypeReference<List<Tweet>>() {
-            })
-            .doOnNext(System.out::println);
+            });
 
-        // then
-        StepVerifier.create(mono)
-            .expectNextMatches(t -> {
-                assertThat(t).hasSize(1);
-                return true;
-            })
-            .expectNextMatches(t -> {
-                assertThat(t).hasSize(2);
-                return true;
-            })
-            .expectNextMatches(t -> {
-                assertThat(t).hasSize(3);
-                return true;
-            })
-            .expectNextMatches(t -> {
-                assertThat(t).hasSize(4);
-                return true;
-            })
-            .expectNextMatches(t -> {
-                assertThat(t).hasSize(5);
-                return true;
-            })
-            .verifyComplete();
+        mono
+            .doOnNext(t -> LOG.info("[Client] Receiving: " + t))
+            .subscribe();
+
+
+        saveTweet("Continue tweeting after channel is open");
+
+        Thread.sleep(4000L);
+    }
+
+    private void saveTweet(String content) {
+        rSocketRequester.route("addTweet")
+            .data(Tweet.builder().author("carl").content(content).build())
+            .retrieveMono(String.class)
+            .block();
     }
 }
