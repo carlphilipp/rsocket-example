@@ -119,14 +119,6 @@ public class TweetTest {
         Flux<Tweet> tweets = Flux.range(0, 2)
             .map(i -> buildTweet("Send flux of tweet #" + i))
             .doOnNext(tweet -> LOG.info("[Client] Sending: " + tweet));
-
-        // when
-        Flux<List<Tweet>> flux = rSocketRequester
-            .route("channelOfTweet")
-            .data(tweets)
-            .retrieveFlux(new ParameterizedTypeReference<>() {
-            });
-
         new Thread(() -> {
             try {
                 Thread.sleep(1000L);
@@ -136,8 +128,15 @@ public class TweetTest {
             }
         }).start();
 
+        // when
+        Flux<List<Tweet>> flux = rSocketRequester
+            .route("channelOfTweet")
+            .data(tweets)
+            .retrieveFlux(new ParameterizedTypeReference<>() {
+            });
+
         // then
-        StepVerifier.create(flux)
+        StepVerifier.create(flux.doOnNext(tweet -> LOG.info("[Client] Receiving: " + tweet)))
             .assertNext(res -> assertThat(res).hasSize(3))
             .assertNext(res -> assertThat(res).hasSize(4))
             .assertNext(res -> assertThat(res).hasSize(5))

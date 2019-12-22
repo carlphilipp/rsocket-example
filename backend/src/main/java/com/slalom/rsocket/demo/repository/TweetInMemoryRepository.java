@@ -26,7 +26,6 @@ public class TweetInMemoryRepository implements TweetRepository {
                 tweets.put(tweet.getId(), tweet);
                 return tweet;
             })
-            .doOnNext(aBoolean -> log.info("Save tweet {}", tweet))
             .map(Tweet::getId);
     }
 
