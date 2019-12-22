@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
-import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -19,7 +19,7 @@ import java.util.UUID;
 @Controller
 public class TweetRoutes {
 
-    private EmitterProcessor<List<Tweet>> emitterProcessor = EmitterProcessor.create();
+    private DirectProcessor<List<Tweet>> repoProcessor = DirectProcessor.create();
 
     private final TweetInMemoryRepository tweetRepository;
 
@@ -28,10 +28,7 @@ public class TweetRoutes {
         final String id = UUID.randomUUID().toString();
         tweet.setId(id);
         return tweetRepository.add(tweet)
-            .map(aBoolean -> {
-                emitterProcessor.onNext(tweetRepository.allTweetsNoRx());
-                return aBoolean;
-            })
+            .doOnNext(res -> repoProcessor.onNext(tweetRepository.allTweetsNoRx()))
             .then(Mono.just(id));
     }
 
@@ -45,16 +42,14 @@ public class TweetRoutes {
         return tweetRepository.allTweets();
     }
 
+    @SuppressWarnings("unchecked")
     @MessageMapping("channelOfTweet")
-    public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> tweetPublisher) {
-        return Flux.concat(tweetPublisher, emitterProcessor)
-            .doOnNext(tweet -> log.info("[Server] Receiving {}", tweet))
+    public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> clientPublisher) {
+        return Flux.merge(repoProcessor, clientPublisher)
             .flatMap(object -> {
-                if (object instanceof Tweet) {
-                    return addTweet((Tweet) object).flatMap(bool -> tweetRepository.allTweetsAsList());
-                } else {
-                    return Mono.just((List<Tweet>) object);
-                }
+                return object instanceof Tweet
+                    ? addTweet((Tweet) object).flatMap(bool -> Mono.empty()) // Add tweet and stop processing addTweet will publish a new event
+                    : Mono.just((List<Tweet>) object);
             });
     }
 }

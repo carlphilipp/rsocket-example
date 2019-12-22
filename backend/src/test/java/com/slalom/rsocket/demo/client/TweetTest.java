@@ -19,7 +19,6 @@ import reactor.test.StepVerifier;
 import redis.embedded.RedisServer;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -135,11 +134,9 @@ public class TweetTest {
         // given
         saveTweet("My first tweet to save in the DB");
         saveTweet("My second tweet to save in the DB");
-
-        Flux<Tweet> tweets = Flux.range(0, 2)
-            .delayElements(Duration.ofMillis(500))
-            .map(i -> Tweet.builder().author("carl").content("Send flux of tweet #" + i).build());
-        //.doOnNext(tweet -> LOG.info("[Client] Sending: " + tweet));
+        Flux<Tweet> tweets = Flux.range(0, 3)
+            .map(i -> Tweet.builder().author("carl").content("Send flux of tweet #" + i).build())
+            .doOnNext(tweet -> LOG.info("[Client] Sending: " + tweet));
 
         // when
         Flux<List<Tweet>> mono = rSocketRequester
