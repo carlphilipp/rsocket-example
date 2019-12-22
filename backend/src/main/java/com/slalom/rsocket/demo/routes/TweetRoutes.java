@@ -26,10 +26,7 @@ public class TweetRoutes {
     @MessageMapping("addTweet")
     public Mono<String> addTweet(final Tweet tweet) {
         return Mono.just(UUID.randomUUID().toString())
-            .map(uuid -> {
-                tweet.setId(uuid);
-                return tweet;
-            })
+            .map(uuid -> tweet.toBuilder().id(uuid).build())
             .flatMap(tweetRepository::add)
             .doOnNext(res -> repoProcessor.onNext(tweetRepository.allTweetsAsList()));
     }
