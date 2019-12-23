@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,10 +25,11 @@ public class TweetRoutes {
     private final TweetInMemoryRepository tweetRepository;
 
     @MessageMapping("addTweet")
-    public Mono<String> addTweet(final Tweet tweet) {
+    public Mono<Tweet> addTweet(final Tweet tweet) {
         return Mono.just(UUID.randomUUID().toString())
             .map(uuid -> tweet.toBuilder().id(uuid).build())
             .flatMap(tweetRepository::add)
+            .map(id -> tweet.toBuilder().id(id).build())
             .doOnNext(res -> repoProcessor.onNext(tweetRepository.allTweetsAsList()));
     }
 
