@@ -1,5 +1,6 @@
 package com.slalom.rsocket.demo.routes;
 
+import com.slalom.rsocket.demo.domain.SimplePayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -28,11 +29,11 @@ public class Routes {
     }
 
     @MessageMapping("requestStream")
-    public Flux<String> requestStream(final String payload) {
+    public Flux<SimplePayload> requestStream(final String payload) {
         log.info("requestStream {}", payload);
-        return Flux.just("1", "2")
-            .delayElements(Duration.ofSeconds(1))
-            .map(s -> payload + " " + s);
+        return Flux.range(1, 2)
+            .delayElements(Duration.ofSeconds(2))
+            .map(s -> SimplePayload.builder().message(payload + " " + s).build());
     }
 
     @MessageMapping("requestChannel")

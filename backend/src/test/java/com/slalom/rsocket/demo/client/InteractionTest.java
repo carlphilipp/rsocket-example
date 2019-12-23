@@ -1,9 +1,16 @@
 package com.slalom.rsocket.demo.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.slalom.rsocket.demo.domain.SimplePayload;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.json.Jackson2JsonDecoder;
+import org.springframework.http.codec.json.Jackson2JsonEncoder;
 import org.springframework.messaging.rsocket.RSocketRequester;
+import org.springframework.messaging.rsocket.RSocketStrategies;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
@@ -16,11 +23,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class InteractionTest {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final MediaType[] SUPPORTED_TYPES = {MediaType.APPLICATION_JSON, new MediaType("application", "*+json")};
+
     private RSocketRequester rSocketRequester;
 
     @PostConstruct
     void postConstruct() {
         rSocketRequester = RSocketRequester.builder()
+            .rsocketStrategies(RSocketStrategies.builder()
+                .encoder(new Jackson2JsonEncoder(MAPPER, SUPPORTED_TYPES))
+                .decoder(new Jackson2JsonDecoder(MAPPER, SUPPORTED_TYPES))
+                .build())
+            .dataMimeType(MediaType.APPLICATION_JSON)
             .connectWebSocket(URI.create("ws://localhost:7000"))
             .block();
     }
@@ -56,15 +71,19 @@ class InteractionTest {
     @Test
     void shouldRequestStream() {
         // when
-        final List<String> result = rSocketRequester
+        final List<SimplePayload> result = rSocketRequester
             .route("requestStream")
             .data("hello")
-            .retrieveFlux(String.class)
+            .retrieveFlux(new ParameterizedTypeReference<SimplePayload>() {
+            })
             .collectList()
             .block();
 
         // then
-        assertThat(result).contains("hello 1", "hello 2");
+        assertThat(result).contains(
+            SimplePayload.builder().message("hello 1").build(),
+            SimplePayload.builder().message("hello 2").build()
+        );
     }
 
     @DisplayName("Request channel")
