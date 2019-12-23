@@ -26,6 +26,7 @@ const client = new RSocketClient({
 
 client.connect().subscribe({
     onComplete: rSocket => {
+        console.log('RSocket completed');
         /*        rSocket
                     .requestResponse({
                         metadata: String.fromCharCode('requestResponse'.length) + 'requestResponse',
@@ -42,28 +43,46 @@ client.connect().subscribe({
                             console.log(`Request/response error: ${error.message}`)
                         }
                     });*/
-
         rSocket
             .requestStream({
                 data: 'DERP',
                 metadata: String.fromCharCode('requestStream'.length) + 'requestStream',
             })
             .subscribe({
-                onNext: next => {
-                    const data = next.data;
-                    if (data) {
-                        console.log(`Request/Stream: ${data}`);
-                    } else {
-                        console.log(`Request/Stream: no data`)
-                    }
+                onComplete: complete => {
+                    console.log(complete);
                 },
-                onError: error => {
-                    console.log(error);
-                    console.log(`Request/Stream error: ${error.message}`)
-                }
+                onError: error => console.error(error),
             });
 
-        console.log('RSocket completed');
+        rSocket.fireAndForget({
+            data: 'some data to log on server',
+            metadata: String.fromCharCode('fireAndForget'.length) + 'fireAndForget',
+        });
+
+        /*        rSocket
+                    .requestStream({
+                        data: 'DERP',
+                        metadata: String.fromCharCode('requestStream'.length) + 'requestStream',
+                    })
+                    .subscribe({
+                        onNext(payload) {
+                            console.log("next", payload.data);
+                        },
+                        onError: error => {
+                            console.log(error);
+                            console.log(`Request/Stream error: ${error.message}`)
+                        }
+                    });*/
+
+        //.subscribe();
+        /*.subscribe({
+            onError: error => {
+                console.log(error);
+                console.log(`Request/Stream error: ${error.message}`)
+            }
+        });*/
+
 
         rSocket.connectionStatus().subscribe(status => {
             console.log('Connection status:', status);
