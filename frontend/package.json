@@ -16,6 +16,7 @@
     "rsocket-types": "^0.0.16",
     "rsocket-websocket-client": "^0.0.18",
     "rsocket-websocket-server": "^0.0.18",
+    "rsocket-tcp-client": "^0.0.18",
     "ws": "^5.2.1"
   },
   "scripts": {

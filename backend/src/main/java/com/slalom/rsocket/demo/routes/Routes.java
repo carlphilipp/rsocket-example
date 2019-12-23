@@ -16,7 +16,7 @@ import java.time.Duration;
 public class Routes {
 
     @MessageMapping("requestResponse")
-    public Mono<String> requestResponse(final String data) {
+    public Mono<String> requestResponse() {
         return Mono.just("hello world!");
     }
 
