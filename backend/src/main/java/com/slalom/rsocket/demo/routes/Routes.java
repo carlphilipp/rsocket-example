@@ -17,6 +17,7 @@ public class Routes {
 
     @MessageMapping("requestResponse")
     public Mono<String> requestResponse() {
+        log.info("requestResponse");
         return Mono.just("hello world!");
     }
 
