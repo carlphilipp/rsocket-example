@@ -7,6 +7,7 @@ import org.springframework.messaging.rsocket.RSocketRequester;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,7 +21,7 @@ class InteractionTest {
     @PostConstruct
     void postConstruct() {
         rSocketRequester = RSocketRequester.builder()
-            .connectTcp("localhost", 7000)
+            .connectWebSocket(URI.create("ws://localhost:7000"))
             .block();
     }
 

@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import javax.annotation.PostConstruct;
+import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.logging.Logger;
@@ -48,7 +49,7 @@ public class TweetTest {
                 .decoder(new Jackson2JsonDecoder(MAPPER, SUPPORTED_TYPES))
                 .build())
             .dataMimeType(MediaType.APPLICATION_JSON)
-            .connectTcp("localhost", 7000)
+            .connectWebSocket(URI.create("ws://localhost:7000"))
             .block();
     }
 

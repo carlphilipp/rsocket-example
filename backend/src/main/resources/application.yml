@@ -2,7 +2,7 @@ spring:
   rsocket:
     server:
       port: 7000
-      transport: tcp
+      transport: websocket
 logging:
   level:
     root: INFO
