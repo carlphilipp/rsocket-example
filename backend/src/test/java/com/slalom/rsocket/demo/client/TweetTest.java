@@ -65,13 +65,15 @@ public class TweetTest {
         Tweet tweet = buildTweet("Hello rsocket");
 
         // when
-        Mono<String> mono = rSocketRequester.route("addTweet").data(tweet).retrieveMono(String.class);
+        Mono<Tweet> mono = rSocketRequester.route("addTweet").data(tweet).retrieveMono(Tweet.class);
 
         // then
         StepVerifier.create(mono)
             .assertNext(result -> {
-                assertThat(result).isNotBlank();
-                assertThat(result).matches(ID_REGEX);
+                assertThat(result.getId()).isNotBlank();
+                assertThat(result.getId()).matches(ID_REGEX);
+                assertThat(result.getAuthor()).isEqualTo("carl");
+                assertThat(result.getContent()).isEqualTo("Hello rsocket");
             })
             .verifyComplete();
     }
@@ -80,15 +82,15 @@ public class TweetTest {
     @Test
     void shouldGetATweet() {
         // given
-        final String id = saveTweet("Hello rsocket get tweet");
+        final Tweet tweet = saveTweet("Hello rsocket get tweet");
 
         // when
-        Mono<Tweet> mono = rSocketRequester.route("getTweet").data(id).retrieveMono(Tweet.class);
+        Mono<Tweet> mono = rSocketRequester.route("getTweet").data(tweet.getId()).retrieveMono(Tweet.class);
 
         // then
         StepVerifier.create(mono)
             .assertNext(t -> {
-                assertThat(t.getId()).isEqualTo(id);
+                assertThat(t.getId()).isEqualTo(tweet.getId());
                 assertThat(t.getAuthor()).isEqualTo("carl");
                 assertThat(t.getContent()).isEqualTo("Hello rsocket get tweet");
             })
@@ -144,10 +146,10 @@ public class TweetTest {
             .verifyTimeout(Duration.ofMillis(2000L));
     }
 
-    private String saveTweet(String content) {
+    private Tweet saveTweet(String content) {
         return rSocketRequester.route("addTweet")
             .data(buildTweet(content))
-            .retrieveMono(String.class)
+            .retrieveMono(Tweet.class)
             .block();
     }
 
