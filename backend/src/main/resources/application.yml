@@ -3,6 +3,7 @@ spring:
     server:
       port: 7000
       transport: websocket
+
 logging:
   level:
     root: INFO
