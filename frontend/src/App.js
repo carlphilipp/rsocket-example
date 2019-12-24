@@ -3,6 +3,10 @@ import './App.css';
 import {IdentitySerializer, JsonSerializer, RSocketClient} from 'rsocket-core';
 import RSocketWebSocketClient from 'rsocket-websocket-client';
 import {Flowable} from 'rsocket-flowable';
+import Button from '@material-ui/core/Button';
+import TextField from '@material-ui/core/TextField';
+import FormControl from '@material-ui/core/FormControl';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 const address = {host: 'localhost', port: 7000};
 
@@ -55,8 +59,8 @@ function doRequestResponse() {
                 onComplete: payload => {
                     console.log("Complete request response with %s", JSON.stringify(payload.data));
                     document.getElementById("requestResponse").innerHTML = JSON.stringify(payload.data);
-                    document.getElementById("author").value = "";
-                    document.getElementById("tweet").value = "";
+                    //document.getElementById("author").value = "";
+                    //document.getElementById("tweet").value = "";
                 },
                 onError: error => console.log(error),
             });
@@ -116,7 +120,7 @@ function doRequestChannel() {
                     });
 
                     let req = document.getElementById("requestChannel");
-                    if(req.childElementCount === 1) {
+                    if (req.childElementCount === 1) {
                         req.removeChild(req.children[0]);
                     }
                     document.getElementById("requestChannel").appendChild(container);
@@ -148,28 +152,26 @@ function App() {
         <div className="App">
             <table border="1" width="100%">
                 <tbody>
-                <tr>
+                <tr valign="top">
                     <td width="10%">
-                        Fire and forget
-                        <button onClick={doFireAndForget}>Clean DB</button>
+                        <DialogTitle>Fire and forget</DialogTitle>
+                        <Button variant="contained" color="primary" onClick={doFireAndForget}>Clean DB</Button>
                     </td>
                     <td width="30%">
-                        Request/Response <br/>
-                        <label>
-                            Author: <input id="author" type="text" name="name" />
-                        </label>
-                        <label>
-                            Tweet: <input id="tweet" type="text" name="tweet" />
-                        </label>
-                        <button onClick={doRequestResponse}>Submit</button>
+                        <FormControl>
+                            <DialogTitle>Request/Response</DialogTitle>
+                            <TextField id="author" label="Author" type="text" name="name"/>
+                            <TextField label="Tweet" id="tweet" type="text" name="tweet"/>
+                            <Button variant="contained" color="primary" onClick={doRequestResponse}>Submit</Button>
+                        </FormControl>
                     </td>
                     <td width="20%">
-                        Request/Stream
-                        <button onClick={doRequestStream}>Submit</button>
+                        <DialogTitle>Request/Stream</DialogTitle>
+                        <Button variant="contained" color="primary" onClick={doRequestStream}>Submit</Button>
                     </td>
                     <td width="40%">
-                        Request/Channel
-                        <button onClick={doRequestChannel}>Submit</button>
+                        <DialogTitle>Request/Channel</DialogTitle>
+                        <Button variant="contained" color="primary" onClick={doRequestChannel}>Submit</Button>
                     </td>
                 </tr>
                 <tr valign="top">
