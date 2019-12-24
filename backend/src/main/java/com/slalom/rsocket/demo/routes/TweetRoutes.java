@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -23,6 +22,17 @@ public class TweetRoutes {
     private DirectProcessor<List<Tweet>> repoProcessor = DirectProcessor.create();
 
     private final TweetInMemoryRepository tweetRepository;
+
+    @MessageMapping("reset")
+    public Mono<Void> resetDb() {
+        return Mono.fromCallable(
+            () -> {
+                tweetRepository.reset();
+                return tweetRepository.allTweetsAsList();
+            })
+            .doOnNext(tweets -> repoProcessor.onNext(tweets))
+            .flatMap(tweets -> Mono.empty());
+    }
 
     @MessageMapping("addTweet")
     public Mono<Tweet> addTweet(final Tweet tweet) {

@@ -46,6 +46,7 @@ public class TweetInMemoryRepository implements TweetRepository {
 
     @Override
     public void reset() {
+        log.info("Reset DB");
         tweets.clear();
     }
 }
