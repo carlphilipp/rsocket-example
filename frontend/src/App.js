@@ -73,8 +73,8 @@ function doRequestStream() {
     if (rSocket !== undefined) {
         rSocket
             .requestStream({
-                data: 'data from front-end',
-                metadata: String.fromCharCode('requestStream'.length) + 'requestStream',
+                data: '',
+                metadata: String.fromCharCode('streamOfTweet'.length) + 'streamOfTweet',
             })
             .subscribe({
                 onNext: payload => {
@@ -115,7 +115,7 @@ function doRequestChannel() {
                         console.log(item, index);
                         let element = document.createElement('div');
                         let shortId = item.id.substr(1, 4);
-                        element.innerText = `{id: ${shortId}..., author:${item.author}, content: ${item.content}},`;
+                        element.innerText = `{id: ${shortId}..., author: ${item.author}, content: ${item.content}},`;
                         container.appendChild(element);
                     });
 
@@ -131,6 +131,13 @@ function doRequestChannel() {
             });
     } else {
         console.error("Rsocket not ready");
+    }
+}
+
+function clearRequestStream() {
+    let requestStreamDiv = document.getElementById("requestStream")
+    while (requestStreamDiv.hasChildNodes()) {
+        requestStreamDiv.removeChild(requestStreamDiv.lastChild);
     }
 }
 
@@ -168,6 +175,7 @@ function App() {
                     <td width="20%">
                         <DialogTitle>Request/Stream</DialogTitle>
                         <Button variant="contained" color="primary" onClick={doRequestStream}>Submit</Button>
+                        <Button variant="contained" color="primary" onClick={clearRequestStream}>Clear</Button>
                     </td>
                     <td width="40%">
                         <DialogTitle>Request/Channel</DialogTitle>

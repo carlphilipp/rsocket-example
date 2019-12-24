@@ -11,6 +11,7 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,7 +51,7 @@ public class TweetRoutes {
 
     @MessageMapping("streamOfTweet")
     public Flux<Tweet> requestStream() {
-        return tweetRepository.allTweets();
+        return tweetRepository.allTweets().delayElements(Duration.ofMillis(500L));
     }
 
     @SuppressWarnings("unchecked")
