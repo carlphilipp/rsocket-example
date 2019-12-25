@@ -16,5 +16,7 @@ public interface TweetRepository {
 
     List<Tweet> allTweetsAsList();
 
-    void reset();
+    Flux<List<Tweet>> allTweetsInFlux();
+
+    Mono<Void> reset();
 }

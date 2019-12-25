@@ -20,19 +20,11 @@ import java.util.UUID;
 @Controller
 public class TweetRoutes {
 
-    private DirectProcessor<List<Tweet>> repoProcessor = DirectProcessor.create();
-
     private final TweetInMemoryRepository tweetRepository;
 
     @MessageMapping("reset")
     public Mono<Void> resetDb() {
-        return Mono.fromCallable(
-            () -> {
-                tweetRepository.reset();
-                return tweetRepository.allTweetsAsList();
-            })
-            .doOnNext(tweets -> repoProcessor.onNext(tweets))
-            .flatMap(tweets -> Mono.empty());
+        return tweetRepository.reset();
     }
 
     @MessageMapping("addTweet")
@@ -40,8 +32,7 @@ public class TweetRoutes {
         return Mono.just(UUID.randomUUID().toString())
             .map(uuid -> tweet.toBuilder().id(uuid).build())
             .flatMap(tweetRepository::add)
-            .map(id -> tweet.toBuilder().id(id).build())
-            .doOnNext(res -> repoProcessor.onNext(tweetRepository.allTweetsAsList()));
+            .map(id -> tweet.toBuilder().id(id).build());
     }
 
     @MessageMapping("getTweet")
@@ -54,12 +45,12 @@ public class TweetRoutes {
         return tweetRepository.allTweets().delayElements(Duration.ofMillis(500L));
     }
 
-    @SuppressWarnings("unchecked")
+
     @MessageMapping("channelOfTweet")
     public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> clientPublisher) {
-        return Flux.merge(repoProcessor, clientPublisher)
+        return Flux.merge(clientPublisher, tweetRepository.allTweetsInFlux())
             .flatMap(object -> object instanceof Tweet
-                ? addTweet((Tweet) object).flatMap(bool -> Mono.empty()) // Add tweet and stop processing. addTweet will publish a new event
+                ? addTweet((Tweet) object).flatMap(bool -> Mono.empty())
                 : Mono.just((List<Tweet>) object));
     }
 }

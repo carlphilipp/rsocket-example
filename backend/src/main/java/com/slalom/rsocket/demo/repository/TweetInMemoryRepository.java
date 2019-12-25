@@ -4,6 +4,7 @@ import com.slalom.rsocket.demo.domain.Tweet;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -17,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Repository
 public class TweetInMemoryRepository implements TweetRepository {
 
+    private DirectProcessor<List<Tweet>> repoProcessor = DirectProcessor.create();
     private Map<String, Tweet> tweets = new ConcurrentHashMap<>();
 
     @Override
@@ -26,7 +28,8 @@ public class TweetInMemoryRepository implements TweetRepository {
                 tweets.put(tweet.getId(), tweet);
                 return tweet;
             })
-            .map(Tweet::getId);
+            .map(Tweet::getId)
+            .doOnNext(tweets -> repoProcessor.onNext(allTweetsAsList()));
     }
 
     @Override
@@ -39,14 +42,31 @@ public class TweetInMemoryRepository implements TweetRepository {
         return Flux.fromIterable(tweets.values());
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public Flux<List<Tweet>> allTweetsInFlux() {
+        return Flux.merge(repoProcessor, Flux.fromIterable(tweets.values()))
+            .flatMap(o -> o instanceof Tweet
+                ? add((Tweet) o).thenMany(Flux.empty()) // Add tweet and stop processing. addTweet will publish a new event
+                : Flux.just((List<Tweet>) o));
+    }
+
     @Override
     public List<Tweet> allTweetsAsList() {
         return new ArrayList<>(tweets.values());
     }
 
     @Override
-    public void reset() {
+    public Mono<Void> reset() {
         log.info("Reset DB");
         tweets.clear();
+        return Mono
+            .fromCallable(() -> {
+                tweets.clear();
+                return "";
+            })
+            .doOnNext(res -> repoProcessor.onNext(allTweetsAsList()))
+            .flatMap(tweets -> Mono.empty());
+
     }
 }
