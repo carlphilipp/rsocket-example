@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,7 +44,7 @@ public class TweetRoutes {
         return tweetRepository.allTweets().delayElements(Duration.ofMillis(500L));
     }
 
-
+    @SuppressWarnings("unchecked")
     @MessageMapping("channelOfTweet")
     public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> clientPublisher) {
         return Flux.merge(clientPublisher, tweetRepository.allTweetsInFlux())

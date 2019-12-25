@@ -29,7 +29,7 @@ public class TweetInMemoryRepository implements TweetRepository {
                 return tweet;
             })
             .map(Tweet::getId)
-            .doOnNext(tweets -> repoProcessor.onNext(allTweetsAsList()));
+            .doOnNext(id -> repoProcessor.onNext(allTweetsAsList()));
     }
 
     @Override
@@ -45,9 +45,9 @@ public class TweetInMemoryRepository implements TweetRepository {
     @SuppressWarnings("unchecked")
     @Override
     public Flux<List<Tweet>> allTweetsInFlux() {
-        return Flux.merge(repoProcessor, Flux.fromIterable(tweets.values()))
+        return Flux.merge(Flux.fromIterable(tweets.values()), repoProcessor)
             .flatMap(o -> o instanceof Tweet
-                ? add((Tweet) o).thenMany(Flux.empty()) // Add tweet and stop processing. addTweet will publish a new event
+                ? add((Tweet) o).thenMany(Flux.empty())
                 : Flux.just((List<Tweet>) o));
     }
 
@@ -58,10 +58,9 @@ public class TweetInMemoryRepository implements TweetRepository {
 
     @Override
     public Mono<Void> reset() {
-        log.info("Reset DB");
-        tweets.clear();
         return Mono
             .fromCallable(() -> {
+                log.info("Reset DB");
                 tweets.clear();
                 return "";
             })

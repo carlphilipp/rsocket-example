@@ -55,7 +55,7 @@ public class TweetTest {
 
     @BeforeEach
     void beforeEach() {
-        inMemoryRepository.reset();
+        inMemoryRepository.reset().block();
     }
 
     @DisplayName("Add a tweet")
@@ -140,10 +140,9 @@ public class TweetTest {
 
         // then
         StepVerifier.create(flux.doOnNext(tweet -> LOG.info("[Client] Receiving: " + tweet)))
-            .assertNext(res -> assertThat(res).hasSize(3))
             .assertNext(res -> assertThat(res).hasSize(4))
             .assertNext(res -> assertThat(res).hasSize(5))
-            .verifyTimeout(Duration.ofMillis(2000L));
+            .verifyTimeout(Duration.ofMillis(10000L));
     }
 
     private Tweet saveTweet(String content) {
