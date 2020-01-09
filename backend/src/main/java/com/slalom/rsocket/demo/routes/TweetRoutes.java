@@ -2,6 +2,7 @@ package com.slalom.rsocket.demo.routes;
 
 import com.slalom.rsocket.demo.domain.Tweet;
 import com.slalom.rsocket.demo.repository.TweetInMemoryRepository;
+import com.slalom.rsocket.demo.repository.TweetMongoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class TweetRoutes {
 
     private final TweetInMemoryRepository tweetRepository;
+    private final TweetMongoRepository tweetMongoRepository;
 
     @MessageMapping("reset")
     public Mono<Void> resetDb() {
@@ -28,7 +30,11 @@ public class TweetRoutes {
 
     @MessageMapping("addTweet")
     public Mono<Tweet> addTweet(final Tweet tweet) {
-        return Mono.just(UUID.randomUUID().toString())
+        return tweetMongoRepository.save(tweet)
+            .doOnNext(tweet1 -> {
+                System.out.println(tweet1);
+            })
+            .then(Mono.just(UUID.randomUUID().toString()))
             .map(uuid -> tweet.toBuilder().id(uuid).build())
             .flatMap(tweetRepository::add)
             .map(id -> tweet.toBuilder().id(id).build());
@@ -41,7 +47,8 @@ public class TweetRoutes {
 
     @MessageMapping("streamOfTweet")
     public Flux<Tweet> requestStream() {
-        return tweetRepository.allTweets().delayElements(Duration.ofMillis(500L));
+        return tweetMongoRepository.getAllByIdNotNull().delayElements(Duration.ofMillis(500L));
+        //return tweetRepository.allTweets().delayElements(Duration.ofMillis(500L));
     }
 
     @SuppressWarnings("unchecked")

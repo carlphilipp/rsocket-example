@@ -3,11 +3,13 @@ spring:
     server:
       port: 7000
       transport: websocket
+  data:
+    mongodb:
+      host: localhost
+      port: 33843
 
 logging:
   level:
     root: INFO
     com.slalom.rsocket.demo: DEBUG
     org.springframework.beans: INFO
-    org.springframework.data.redis: DEBUG
-    redis.embedded;: DEBUG

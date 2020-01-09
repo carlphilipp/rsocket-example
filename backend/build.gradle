@@ -14,9 +14,9 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-rsocket'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb-reactive'
     implementation 'io.lettuce:lettuce-core'
-    implementation 'it.ozimov:embedded-redis:0.7.2'
+    implementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo'
 
     compileOnly 'org.projectlombok:lombok'
 
