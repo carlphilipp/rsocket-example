@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
 
-@Document
+@Document("tweets")
 @Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor

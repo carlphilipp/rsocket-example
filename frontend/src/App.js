@@ -60,8 +60,6 @@ function doRequestResponse() {
         onComplete: payload => {
           console.log("Complete request response with %s", JSON.stringify(payload.data));
           document.getElementById("requestResponse").innerHTML = JSON.stringify(payload.data);
-          //document.getElementById("author").value = "";
-          //document.getElementById("tweet").value = "";
         },
         onError: error => console.log(error),
       });
@@ -79,9 +77,8 @@ function doRequestStream() {
       })
       .subscribe({
         onNext: payload => {
-          //console.log("onNext stream: %s", JSON.stringify(payload.data))
           let newDiv = document.createElement('div');
-          newDiv.innerText = JSON.stringify(payload.data);
+          newDiv.innerText = toShort(payload);
           document.getElementById("requestStream").appendChild(newDiv);
         },
         onComplete: () => {
@@ -111,20 +108,9 @@ function doRequestChannel() {
       .subscribe({
         onNext: payload => {
           console.log("onNext channel: %s", JSON.stringify(payload.data));
-          let container = document.createElement('div');
-          payload.data.forEach(function (item, index) {
-            console.log(item, index);
-            let element = document.createElement('div');
-            let shortId = item.id.substr(1, 4);
-            element.innerText = `{id: ${shortId}..., author: ${item.author}, content: ${item.content}},`;
-            container.appendChild(element);
-          });
-
-          let req = document.getElementById("requestChannel");
-          if (req.childElementCount === 1) {
-            req.removeChild(req.children[0]);
-          }
-          document.getElementById("requestChannel").appendChild(container);
+          let newDiv = document.createElement('div');
+          newDiv.innerText = toShort(payload);
+          document.getElementById("requestChannel").appendChild(newDiv);
         },
         onComplete: () => console.log('Request channel complete'),
         onError: error => console.log(error),
@@ -135,12 +121,26 @@ function doRequestChannel() {
   }
 }
 
+function toShort(payload) {
+  let tweet = payload.data;
+  let shortId = tweet.id.substr(1, 4);
+  return `{id: ${shortId}..., author: ${tweet.author}, content: ${tweet.content}}`;
+}
+
 function clearRequestStream() {
-  let requestStreamDiv = document.getElementById("requestStream")
+  let requestStreamDiv = document.getElementById("requestStream");
   while (requestStreamDiv.hasChildNodes()) {
     requestStreamDiv.removeChild(requestStreamDiv.lastChild);
   }
 }
+
+function clearRequestChannel() {
+  let requestStreamDiv = document.getElementById("requestChannel");
+  while (requestStreamDiv.hasChildNodes()) {
+    requestStreamDiv.removeChild(requestStreamDiv.lastChild);
+  }
+}
+
 
 client.connect().subscribe({
   onComplete: socket => {
@@ -165,7 +165,7 @@ function App() {
             <DialogTitle>Fire and forget</DialogTitle>
             <Button variant="contained" color="primary" onClick={doFireAndForget}>Clean DB</Button>
           </td>
-          <td width="30%">
+          <td width="20%">
             <FormControl>
               <DialogTitle>Request/Response</DialogTitle>
               <TextField id="author" label="Author" type="text" name="name"/>
@@ -173,14 +173,15 @@ function App() {
               <Button variant="contained" color="primary" onClick={doRequestResponse}>Submit</Button>
             </FormControl>
           </td>
-          <td width="20%">
+          <td width="25%">
             <DialogTitle>Request/Stream</DialogTitle>
             <Button variant="contained" color="primary" onClick={doRequestStream}>Submit</Button>
             <Button variant="contained" color="primary" onClick={clearRequestStream}>Clear</Button>
           </td>
-          <td width="40%">
+          <td width="25%">
             <DialogTitle>Request/Channel</DialogTitle>
             <Button variant="contained" color="primary" onClick={doRequestChannel}>Submit</Button>
+            <Button variant="contained" color="primary" onClick={clearRequestChannel}>Clear</Button>
           </td>
         </tr>
         <tr valign="top">

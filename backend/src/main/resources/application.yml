@@ -7,9 +7,11 @@ spring:
     mongodb:
       host: localhost
       port: 33843
+      database: rsocket
 
 logging:
   level:
     root: INFO
     com.slalom.rsocket.demo: DEBUG
     org.springframework.beans: INFO
+    org.mongodb.driver.protocol.command: INFO

@@ -1,7 +1,6 @@
 package com.slalom.rsocket.demo.routes;
 
 import com.slalom.rsocket.demo.domain.Tweet;
-import com.slalom.rsocket.demo.repository.TweetInMemoryRepository;
 import com.slalom.rsocket.demo.repository.TweetMongoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,8 +10,6 @@ import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -20,43 +17,35 @@ import java.util.UUID;
 @Controller
 public class TweetRoutes {
 
-    private final TweetInMemoryRepository tweetRepository;
     private final TweetMongoRepository tweetMongoRepository;
 
     @MessageMapping("reset")
     public Mono<Void> resetDb() {
-        return tweetRepository.reset();
+        return tweetMongoRepository.deleteAll();
     }
 
     @MessageMapping("addTweet")
     public Mono<Tweet> addTweet(final Tweet tweet) {
-        return tweetMongoRepository.save(tweet)
-            .doOnNext(tweet1 -> {
-                System.out.println(tweet1);
-            })
-            .then(Mono.just(UUID.randomUUID().toString()))
-            .map(uuid -> tweet.toBuilder().id(uuid).build())
-            .flatMap(tweetRepository::add)
-            .map(id -> tweet.toBuilder().id(id).build());
+        return Mono.just(UUID.randomUUID().toString())
+            .map(id -> tweet.toBuilder().id(id).build())
+            .flatMap(tweetMongoRepository::save);
     }
 
     @MessageMapping("getTweet")
     public Mono<Tweet> getTweet(final String id) {
-        return tweetRepository.get(id);
+        return tweetMongoRepository.findById(id);
     }
 
     @MessageMapping("streamOfTweet")
     public Flux<Tweet> requestStream() {
-        return tweetMongoRepository.getAllByIdNotNull().delayElements(Duration.ofMillis(500L));
-        //return tweetRepository.allTweets().delayElements(Duration.ofMillis(500L));
+        return tweetMongoRepository.getAllByIdNotNull();
     }
 
-    @SuppressWarnings("unchecked")
     @MessageMapping("channelOfTweet")
-    public Flux<List<Tweet>> requestChannel(final Publisher<Tweet> clientPublisher) {
-        return Flux.merge(clientPublisher, tweetRepository.allTweetsInFlux())
-            .flatMap(object -> object instanceof Tweet
-                ? addTweet((Tweet) object).flatMap(bool -> Mono.empty())
-                : Mono.just((List<Tweet>) object));
+    public Flux<Tweet> requestChannel(final Publisher<Tweet> clientPublisher) {
+        return Flux.merge(clientPublisher, tweetMongoRepository.getAllByIdNotNull())
+            .flatMap(tweet -> tweet.getId() == null
+                ? addTweet(tweet)
+                : Mono.just(tweet));
     }
 }
