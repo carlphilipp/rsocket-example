@@ -2,11 +2,11 @@ import React from 'react';
 import './App.css';
 import {IdentitySerializer, JsonSerializer, RSocketClient} from 'rsocket-core';
 import RSocketWebSocketClient from 'rsocket-websocket-client';
-import {Flowable} from 'rsocket-flowable';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
 import FormControl from '@material-ui/core/FormControl';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import {Flowable} from "rsocket-flowable";
 
 //const address = {host: '192.168.1.4', port: 7000};
 const address = {host: 'localhost', port: 7000};
@@ -95,35 +95,65 @@ function doRequestStream() {
   }
 }
 
-function doRequestChannel() {
-  if (rSocket !== undefined) {
-    rSocket
-      .requestChannel(Flowable.just({
-        data: {
-          'author': 'carl',
-          'content': 'my tweet from the ui'
-        },
-        metadata: String.fromCharCode('channelOfTweet'.length) + 'channelOfTweet',
-      }))
-      .subscribe({
-        onNext: payload => {
-          console.log("onNext channel: %s", JSON.stringify(payload.data));
-          let newDiv = document.createElement('div');
-          newDiv.innerText = toShort(payload);
-          document.getElementById("requestChannel").appendChild(newDiv);
-        },
-        onComplete: () => console.log('Request channel complete'),
-        onError: error => console.log(error),
-        onSubscribe: subscription => subscription.request(maxRSocketRequestN),
-      });
-  } else {
+let sub = null;
+
+function doConnectRequestChannel() {
+  if (rSocket === undefined) {
     console.error("RSocket not ready");
+    return;
   }
+
+  const flowable = new Flowable(subscriber => {
+    subscriber.onSubscribe({
+      cancel: () => {
+      },
+      request: n => {
+        if (sub == null) {
+          console.log("Register subscriber " + n);
+          sub = subscriber
+        }
+      },
+    });
+  });
+
+  rSocket
+    .requestChannel(flowable)
+    .subscribe({
+      onNext: payload => {
+        console.log("onNext channel: %s", JSON.stringify(payload.data));
+        let newDiv = document.createElement('div');
+        newDiv.innerText = toShort(payload);
+        document.getElementById("requestChannel").appendChild(newDiv);
+      },
+      onComplete: () => console.log('Request channel complete'),
+      onError: error => console.log(error),
+      onSubscribe: subscription => {
+        console.log("Connected to request channel");
+        subscription.request(maxRSocketRequestN)
+      },
+    });
+
+}
+
+function sendTweetToRequestChannel() {
+  if (rSocket === undefined) {
+    console.error("RSocket not ready");
+    return;
+  }
+
+  sub.onNext({
+    data: {
+      'author': document.getElementById("authorChannel").value,
+      'content': document.getElementById("tweetChannel").value,
+    },
+    metadata: String.fromCharCode('channelOfTweet'.length) + 'channelOfTweet',
+  });
+
 }
 
 function toShort(payload) {
   let tweet = payload.data;
-  let shortId = tweet.id.substr(1, 4);
+  let shortId = tweet.id.substr(0, 3);
   return `{id: ${shortId}..., author: ${tweet.author}, content: ${tweet.content}}`;
 }
 
@@ -146,6 +176,7 @@ client.connect().subscribe({
   onComplete: socket => {
     rSocket = socket;
     console.log('RSocket completed');
+
     socket.connectionStatus().subscribe(status => {
       console.log('Connection status:', status);
     });
@@ -179,9 +210,14 @@ function App() {
             <Button variant="contained" color="primary" onClick={clearRequestStream}>Clear</Button>
           </td>
           <td width="25%">
-            <DialogTitle>Request/Channel</DialogTitle>
-            <Button variant="contained" color="primary" onClick={doRequestChannel}>Submit</Button>
-            <Button variant="contained" color="primary" onClick={clearRequestChannel}>Clear</Button>
+            <FormControl>
+              <DialogTitle>Request/Channel</DialogTitle>
+              <Button id="connect" variant="contained" color="primary" onClick={doConnectRequestChannel}>Connect</Button>
+              <TextField id="authorChannel" label="Author" type="text" name="name"/>
+              <TextField id="tweetChannel" label="Tweet" type="text" name="tweet"/>
+              <Button id="req" variant="contained" color="primary" onClick={sendTweetToRequestChannel}>Submit</Button>
+              <Button variant="contained" color="primary" onClick={clearRequestChannel}>Clear</Button>
+            </FormControl>
           </td>
         </tr>
         <tr valign="top">

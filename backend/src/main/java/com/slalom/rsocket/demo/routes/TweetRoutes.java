@@ -28,24 +28,27 @@ public class TweetRoutes {
     public Mono<Tweet> addTweet(final Tweet tweet) {
         return Mono.just(UUID.randomUUID().toString())
             .map(id -> tweet.toBuilder().id(id).build())
+            .doOnNext(t -> log.info("Save tweet {}", t))
             .flatMap(tweetMongoRepository::save);
     }
 
     @MessageMapping("getTweet")
     public Mono<Tweet> getTweet(final String id) {
-        return tweetMongoRepository.findById(id);
+        return tweetMongoRepository.findById(id).doOnNext(t -> log.info("Send back to UI {}", t));
     }
 
     @MessageMapping("streamOfTweet")
     public Flux<Tweet> requestStream() {
-        return tweetMongoRepository.getAllByIdNotNull();
+        return tweetMongoRepository.getAllByIdNotNull().doOnNext(t -> log.info("Send back to UI {}", t));
     }
 
     @MessageMapping("channelOfTweet")
     public Flux<Tweet> requestChannel(final Publisher<Tweet> clientPublisher) {
-        return Flux.merge(clientPublisher, tweetMongoRepository.getAllByIdNotNull())
+        return Flux.merge(clientPublisher, tweetMongoRepository.getAllByIdNotNull()) // the db needs at least one element or it completes right away.
             .flatMap(tweet -> tweet.getId() == null
-                ? addTweet(tweet)
-                : Mono.just(tweet));
+                ? addTweet(tweet).then(Mono.empty())
+                : Mono.just(tweet))
+            .doOnNext(t -> log.info("Send back to UI {}", t))
+            .doOnSubscribe(subscription -> log.info("channel on subscribe"));
     }
 }

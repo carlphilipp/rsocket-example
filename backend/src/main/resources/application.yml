@@ -15,3 +15,5 @@ logging:
     com.slalom.rsocket.demo: DEBUG
     org.springframework.beans: INFO
     org.mongodb.driver.protocol.command: INFO
+    org.mongodb.driver.connection: WARN
+    org.springframework.boot.autoconfigure.mongo.embedded: WARN
